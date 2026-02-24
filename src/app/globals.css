@@ -1,26 +1,201 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-instrument-sans);
+  --font-serif: var(--font-newsreader);
+  --font-mono: var(--font-instrument-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ── Digital Naturalism Palette ──────────────────────────── */
+:root {
+  --radius: 1.5rem;
+  --background: #0C0A09;
+  --foreground: #E7E5E4;
+  --card: #1C1917;
+  --card-foreground: #E7E5E4;
+  --popover: #1C1917;
+  --popover-foreground: #E7E5E4;
+  --primary: #F97316;
+  --primary-foreground: #0C0A09;
+  --secondary: #292524;
+  --secondary-foreground: #E7E5E4;
+  --muted: #1C1917;
+  --muted-foreground: #78716C;
+  --accent: #F97316;
+  --accent-foreground: #0C0A09;
+  --destructive: #ef4444;
+  --border: #292524;
+  --input: #1C1917;
+  --ring: #F97316;
+  --chart-1: #F97316;
+  --chart-2: #FB923C;
+  --chart-3: #FDBA74;
+  --chart-4: #EA580C;
+  --chart-5: #9A3412;
+  --sidebar: #0C0A09;
+  --sidebar-foreground: #E7E5E4;
+  --sidebar-primary: #F97316;
+  --sidebar-primary-foreground: #0C0A09;
+  --sidebar-accent: #1C1917;
+  --sidebar-accent-foreground: #E7E5E4;
+  --sidebar-border: #292524;
+  --sidebar-ring: #F97316;
+}
+
+.dark {
+  --radius: 1.5rem;
+  --background: #0C0A09;
+  --foreground: #E7E5E4;
+  --card: #1C1917;
+  --card-foreground: #E7E5E4;
+  --popover: #1C1917;
+  --popover-foreground: #E7E5E4;
+  --primary: #F97316;
+  --primary-foreground: #0C0A09;
+  --secondary: #292524;
+  --secondary-foreground: #E7E5E4;
+  --muted: #1C1917;
+  --muted-foreground: #78716C;
+  --accent: #F97316;
+  --accent-foreground: #0C0A09;
+  --destructive: #ef4444;
+  --border: #292524;
+  --input: #1C1917;
+  --ring: #F97316;
+  --chart-1: #F97316;
+  --chart-2: #FB923C;
+  --chart-3: #FDBA74;
+  --chart-4: #EA580C;
+  --chart-5: #9A3412;
+  --sidebar: #0C0A09;
+  --sidebar-foreground: #E7E5E4;
+  --sidebar-primary: #F97316;
+  --sidebar-primary-foreground: #0C0A09;
+  --sidebar-accent: #1C1917;
+  --sidebar-accent-foreground: #E7E5E4;
+  --sidebar-border: #292524;
+  --sidebar-ring: #F97316;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ── Animations ──────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@layer utilities {
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease both;
+  }
+}
+
+/* ── Noise Overlay ───────────────────────────────────────── */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* ── Serrated Edge Divider ───────────────────────────────── */
+.serrated-edge {
+  height: 20px;
+  background: radial-gradient(circle 10px at 10px 0, transparent 9.5px, var(--background) 10px) repeat-x;
+  background-size: 20px 20px;
+  opacity: 0.3;
+}
+
+/* ── Pill Button ─────────────────────────────────────────── */
+.btn-pill {
+  border-radius: 9999px;
+  padding: 0.5rem 1.25rem;
+  font-family: var(--font-instrument-sans);
+  font-weight: 500;
+  font-size: 0.875rem;
+  letter-spacing: 0.01em;
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-pill-primary {
+  background: #F97316;
+  color: #0C0A09;
+}
+.btn-pill-primary:hover {
+  background: #FB923C;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+}
+.btn-pill-secondary {
+  background: #292524;
+  color: #E7E5E4;
+  border: 1px solid #292524;
+}
+.btn-pill-secondary:hover {
+  border-color: #F97316;
+  color: #F97316;
+}
+
+/* ── Card Style ──────────────────────────────────────────── */
+.card-naturalism {
+  background: #1C1917;
+  border: 1px solid #292524;
+  border-radius: 1.5rem;
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-naturalism:hover {
+  border-color: rgba(249, 115, 22, 0.25);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
