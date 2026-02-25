@@ -182,6 +182,7 @@ export interface GraphNode {
   size: number;
   color: string;
   primaryTopic?: string;
+  firstBookmarkedAt?: string; // ISO 8601 - earliest bookmark timestamp for this node
   x?: number;
   y?: number;
 }

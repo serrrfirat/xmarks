@@ -38,6 +38,18 @@ export async function GET() {
       )
       .all() as { author_handle: string; author_name: string; count: number }[]
 
+    const authorFirstBookmarkedRows = db
+      .prepare(
+        `SELECT author_handle, MIN(bookmarked_at) as first_bookmarked_at
+         FROM tweets
+         GROUP BY author_handle`
+      )
+      .all() as { author_handle: string; first_bookmarked_at: string }[]
+
+    const authorFirstBookmarkedMap = new Map(
+      authorFirstBookmarkedRows.map((row) => [row.author_handle, row.first_bookmarked_at]),
+    )
+
     // 2. Check if semantic_categories has any data
     const categoryCount = db
       .prepare('SELECT COUNT(*) as cnt FROM semantic_categories')
@@ -52,6 +64,8 @@ export async function GET() {
       count: number
     }[] = []
 
+    const topicFirstBookmarkedMap = new Map<number, string>()
+
     const primaryTopicMap = new Map<string, string>()
 
     if (hasCategories) {
@@ -65,6 +79,19 @@ export async function GET() {
            ORDER BY count DESC`
         )
         .all() as typeof topicNodes
+
+      const topicFirstBookmarkedRows = db
+        .prepare(
+          `SELECT category_id, MIN(bookmarked_at) as first_bookmarked_at
+           FROM tweets
+           WHERE category_id IS NOT NULL
+           GROUP BY category_id`
+        )
+        .all() as { category_id: number; first_bookmarked_at: string }[]
+
+      for (const row of topicFirstBookmarkedRows) {
+        topicFirstBookmarkedMap.set(row.category_id, row.first_bookmarked_at)
+      }
 
       // 4. Primary topic per author (take first = highest count due to ORDER BY)
       const primaryTopicRows = db
@@ -115,6 +142,7 @@ export async function GET() {
           label: t.name,
           size: t.count,
           color: topicColor(t.name),
+          firstBookmarkedAt: topicFirstBookmarkedMap.get(t.id),
         })
       }
     }
@@ -129,6 +157,7 @@ export async function GET() {
         size: a.count,
         color: topicColor(primary),
         primaryTopic: primary,
+        firstBookmarkedAt: authorFirstBookmarkedMap.get(a.author_handle),
       })
     }
 

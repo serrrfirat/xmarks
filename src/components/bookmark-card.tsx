@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { SimilarTweets } from '@/components/similar-tweets'
 import { ThreadView } from '@/components/thread-view'
 
 function initials(name: string): string {
@@ -41,6 +42,7 @@ export function BookmarkCard({
 }: BookmarkCardProps) {
 
   const [threadOpen, setThreadOpen] = useState(false)
+  const [similarOpen, setSimilarOpen] = useState(false)
 
   const media: BirdMedia[] = useMemo(() => {
     if (!tweet.mediaJson) return []
@@ -218,6 +220,13 @@ export function BookmarkCard({
                   {threadOpen ? 'Hide thread' : 'Thread'}
                 </button>
               )}
+
+              <button
+                className="text-[#78716C] hover:text-[#F97316] text-xs font-sans font-medium transition-colors duration-300 cursor-pointer"
+                onClick={() => setSimilarOpen((o) => !o)}
+              >
+                {similarOpen ? 'Hide similar' : 'Similar'}
+              </button>
             </div>
           </div>
         </div>
@@ -230,6 +239,12 @@ export function BookmarkCard({
           onClose={() => setThreadOpen(false)}
         />
       )}
+
+      <SimilarTweets
+        tweetId={tweet.id}
+        isOpen={similarOpen}
+        onClose={() => setSimilarOpen(false)}
+      />
     </>
   )
 }
