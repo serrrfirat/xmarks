@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Heart, Repeat2, MessageCircle, Bookmark, CalendarDays } from 'lucide-react'
+import { Heart, Repeat2, MessageCircle, Bookmark, CalendarDays, ExternalLink } from 'lucide-react'
 
 import type { AuthorProfile } from '@/lib/types'
 import { formatCount } from '@/lib/utils'
@@ -265,9 +265,12 @@ export function AuthorSheet({ handle, open, onOpenChange }: AuthorSheetProps) {
                   </p>
                   <div className="space-y-2 pt-1">
                     {tweets.map((tweet) => (
-                      <div
+                      <a
                         key={tweet.id}
-                        className="rounded-lg border border-[#292524] bg-[#1C1917]/60 p-3"
+                        href={tweet.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group block rounded-lg border border-[#292524] bg-[#1C1917]/60 p-3 transition-colors hover:border-[#F97316]/40 hover:bg-[#292524]/60"
                       >
                         <p className="text-sm leading-relaxed text-[#E7E5E4]/90">
                           {tweet.text.length > 150
@@ -284,9 +287,9 @@ export function AuthorSheet({ handle, open, onOpenChange }: AuthorSheetProps) {
                             <Repeat2 className="size-3" />
                             {formatCount(tweet.retweetCount)}
                           </span>
+                          <ExternalLink className="ml-auto size-3 text-[#78716C] transition-colors group-hover:text-[#F97316]" />
                         </div>
-                      </div>
-                    ))}
+                    </a>))}
                   </div>
                 </div>
               </>
