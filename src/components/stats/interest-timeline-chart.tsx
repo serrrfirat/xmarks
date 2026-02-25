@@ -184,9 +184,12 @@ function InterestTimelineChartInner({ data }: InterestTimelineChartProps) {
 
           {/* X-axis labels */}
           {months.map((month, i) => {
-            // Show every other label if crowded
-            if (months.length > 8 && i % 2 !== 0) return null
-            const shortLabel = month.slice(5) // "MM" from "YYYY-MM"
+            const skipInterval = months.length > 14 ? 3 : months.length > 8 ? 2 : 1
+            if (i % skipInterval !== 0) return null
+            const isDaily = month.length === 10
+            const shortLabel = isDaily
+              ? new Date(month + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+              : new Date(month + '-01T00:00:00').toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
             return (
               <text
                 key={month}

@@ -136,28 +136,65 @@ export async function GET() {
         }))
       : []
 
-    // ── Section 4: Interest Evolution (last 12 months) ───────────────
+    // ── Section 4: Interest Evolution (adaptive grouping, padded range) ──
+    const rangeRow = db
+      .prepare(
+        `SELECT MIN(bookmarked_at) as earliest, MAX(bookmarked_at) as latest
+         FROM tweets`
+      )
+      .get() as { earliest: string | null; latest: string | null }
+
+    const earliest = rangeRow?.earliest ? new Date(rangeRow.earliest) : new Date()
+    const latest = rangeRow?.latest ? new Date(rangeRow.latest) : new Date()
+    const spanMs = latest.getTime() - earliest.getTime()
+    const spanDays = Math.max(1, Math.round(spanMs / 86_400_000))
+    const useDaily = spanDays < 60
+    const timeFmt = useDaily ? '%Y-%m-%d' : '%Y-%m'
+
     const evolutionRows = db
       .prepare(
-        `SELECT strftime('%Y-%m', bookmarked_at) as month, sc.name as category, COUNT(*) as count
+        `SELECT strftime('${timeFmt}', bookmarked_at) as period, sc.name as category, COUNT(*) as count
          FROM tweets t
          JOIN semantic_categories sc ON t.category_id = sc.id
          WHERE bookmarked_at >= datetime('now', '-12 months')
-         GROUP BY month, sc.id
-         ORDER BY month ASC`
+         GROUP BY period, sc.id
+         ORDER BY period ASC`
       )
-      .all() as { month: string; category: string; count: number }[]
+      .all() as { period: string; category: string; count: number }[]
 
+    const allCategories = new Set<string>()
     const evolutionMap = new Map<string, Array<{ name: string; count: number }>>()
     for (const row of evolutionRows) {
-      if (!evolutionMap.has(row.month)) {
-        evolutionMap.set(row.month, [])
+      allCategories.add(row.category)
+      if (!evolutionMap.has(row.period)) {
+        evolutionMap.set(row.period, [])
       }
-      evolutionMap.get(row.month)!.push({ name: row.category, count: row.count })
+      evolutionMap.get(row.period)!.push({ name: row.category, count: row.count })
     }
-    const interestEvolution: InterestPoint[] = Array.from(evolutionMap.entries()).map(
-      ([month, categories]) => ({ month, categories })
-    )
+
+    // Pad date range: ensure at least 30 days (daily) or 6 months (monthly)
+    const allPeriods: string[] = []
+    if (useDaily) {
+      const padStart = new Date(earliest)
+      padStart.setDate(padStart.getDate() - 3)
+      const padEnd = new Date(Math.max(latest.getTime(), padStart.getTime() + 30 * 86_400_000))
+      for (let d = new Date(padStart); d <= padEnd; d.setDate(d.getDate() + 1)) {
+        allPeriods.push(d.toISOString().slice(0, 10))
+      }
+    } else {
+      const padStart = new Date(earliest)
+      padStart.setMonth(padStart.getMonth() - 1)
+      const padEnd = new Date(latest)
+      padEnd.setMonth(padEnd.getMonth() + 1)
+      for (let d = new Date(padStart); d <= padEnd; d.setMonth(d.getMonth() + 1)) {
+        allPeriods.push(d.toISOString().slice(0, 7))
+      }
+    }
+
+    const interestEvolution: InterestPoint[] = allPeriods.map((period) => ({
+      month: period,
+      categories: evolutionMap.get(period) ?? [],
+    }))
 
     // ── Section 5: Engagement Scatter (cap 500) ──────────────────────
     const engagementScatter = db
