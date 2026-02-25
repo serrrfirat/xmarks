@@ -122,13 +122,23 @@ export function searchBookmarks(
 }
 
 export function getBookmarks(
-  options?: { limit?: number; offset?: number; folderId?: number; tagId?: number; categoryId?: number }
+  options?: {
+    limit?: number
+    offset?: number
+    folderId?: number
+    tagId?: number
+    categoryId?: number
+    from?: string
+    to?: string
+  }
 ): PaginatedResponse<Tweet> {
   const limit = options?.limit ?? 20;
   const offset = options?.offset ?? 0;
   const folderId = options?.folderId;
   const tagId = options?.tagId;
   const categoryId = options?.categoryId;
+  const from = options?.from;
+  const to = options?.to;
 
   const db = getDb();
 
@@ -148,6 +158,16 @@ export function getBookmarks(
   if (categoryId !== undefined) {
     whereClause += ' AND t.category_id = ?';
     params.push(categoryId);
+  }
+
+  if (from) {
+    whereClause += ' AND t.bookmarked_at >= ?';
+    params.push(from);
+  }
+
+  if (to) {
+    whereClause += ' AND t.bookmarked_at <= ?';
+    params.push(to);
   }
 
   const countStmt = db.prepare(`

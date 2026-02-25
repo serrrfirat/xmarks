@@ -9,6 +9,7 @@ import { BookmarkCard } from '@/components/bookmark-card'
 import { ActivityDashboard } from '@/components/activity-dashboard'
 import { AuthorSheet } from '@/components/author-sheet'
 import { WeeklyDigestCard } from '@/components/weekly-digest'
+import { TimeRangeFilter, getDateRange } from '@/components/time-range-filter'
 
 const PAGE_SIZE = 50
 const INITIAL_DATE_COUNT = 30
@@ -52,10 +53,12 @@ export default function TimelinePage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMorePages, setHasMorePages] = useState(true)
   const [visibleCount, setVisibleCount] = useState(INITIAL_DATE_COUNT)
+  const [timeRange, setTimeRange] = useState('all')
   const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const offsetRef = useRef(0)
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const { from, to } = getDateRange(timeRange)
 
   const dateGroups: DateGroup[] = useMemo(() => {
     const map = new Map<string, Tweet[]>()
@@ -85,6 +88,14 @@ export default function TimelinePage() {
     url.searchParams.set('limit', String(PAGE_SIZE))
     url.searchParams.set('offset', String(offset))
 
+    if (from) {
+      url.searchParams.set('from', from)
+    }
+
+    if (to) {
+      url.searchParams.set('to', to)
+    }
+
     const res = await fetch(url.toString())
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
@@ -94,10 +105,13 @@ export default function TimelinePage() {
     setAllTweets((prev) => (append ? [...prev, ...items] : items))
     setHasMorePages(items.length === PAGE_SIZE)
     offsetRef.current = offset + items.length
-  }, [])
+  }, [from, to])
 
   useEffect(() => {
     setLoading(true)
+    setAllTweets([])
+    setHasMorePages(true)
+    setVisibleCount(INITIAL_DATE_COUNT)
     offsetRef.current = 0
     fetchPage(0, false).finally(() => setLoading(false))
   }, [fetchPage])
@@ -148,6 +162,10 @@ export default function TimelinePage() {
               <p className="text-[#78716C] font-sans text-sm mt-1">
                 Your bookmarks, day by day
               </p>
+            </div>
+
+            <div className="mb-6">
+              <TimeRangeFilter value={timeRange} onChange={setTimeRange} />
             </div>
 
             <div className="mb-8">
@@ -227,19 +245,26 @@ export default function TimelinePage() {
 }
 
 function TimelineSkeleton() {
+  const skeletonSections = [
+    { key: 'section-1', cards: ['section-1-card-1', 'section-1-card-2'] },
+    { key: 'section-2', cards: ['section-2-card-1', 'section-2-card-2', 'section-2-card-3'] },
+    { key: 'section-3', cards: ['section-3-card-1', 'section-3-card-2'] },
+    { key: 'section-4', cards: ['section-4-card-1', 'section-4-card-2', 'section-4-card-3'] },
+  ]
+
   return (
     <div className="relative">
       <div className="absolute left-[7px] top-2 bottom-0 w-px bg-[#292524]" />
       <div className="flex flex-col gap-8">
-        {Array.from({ length: 4 }, (_, i) => (
-          <div key={i} className="relative pl-8">
+        {skeletonSections.map((section) => (
+          <div key={section.key} className="relative pl-8">
             <span className="absolute left-[2px] top-0.5 w-2.5 h-2.5 rounded-full bg-[#292524] animate-pulse" />
             <div className="mb-3">
               <div className="bg-[#292524] rounded-xl h-3 w-20 animate-pulse" />
             </div>
             <div className="flex flex-col gap-3">
-              {Array.from({ length: 2 + (i % 2) }, (_, j) => (
-                <div key={j} className="card-naturalism p-4 space-y-3">
+              {section.cards.map((cardKey) => (
+                <div key={cardKey} className="card-naturalism p-4 space-y-3">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full bg-[#292524] animate-pulse" />
                     <div className="space-y-2 flex-1">

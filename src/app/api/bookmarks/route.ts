@@ -9,6 +9,8 @@ export async function GET(request: NextRequest) {
     const folderIdStr = searchParams.get('folderId')
     const tagIdStr = searchParams.get('tagId')
     const categoryIdStr = searchParams.get('categoryId')
+    const from = searchParams.get('from') ?? undefined
+    const to = searchParams.get('to') ?? undefined
 
     const folderId = folderIdStr ? parseInt(folderIdStr, 10) : undefined
     const tagId = tagIdStr ? parseInt(tagIdStr, 10) : undefined
@@ -18,7 +20,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid limit or offset' }, { status: 400 })
     }
 
-    const result = getBookmarks({ limit, offset, folderId, tagId, categoryId })
+    const result = getBookmarks({ limit, offset, folderId, tagId, categoryId, from, to })
     return NextResponse.json(result)
   } catch (error) {
     return NextResponse.json(

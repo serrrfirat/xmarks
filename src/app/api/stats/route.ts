@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import type {
   StatsOverview,
@@ -19,9 +19,35 @@ const DAY_NAMES: Record<string, string> = {
   '6': 'Saturday',
 }
 
-export async function GET() {
+function buildDateRangeWhere(column: string, from?: string, to?: string) {
+  const clauses: string[] = []
+  const params: string[] = []
+
+  if (from) {
+    clauses.push(`${column} >= ?`)
+    params.push(from)
+  }
+
+  if (to) {
+    clauses.push(`${column} <= ?`)
+    params.push(to)
+  }
+
+  return {
+    whereClause: clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '',
+    params,
+  }
+}
+
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const from = searchParams.get('from') ?? undefined
+    const to = searchParams.get('to') ?? undefined
     const db = getDb()
+
+    const baseRange = buildDateRangeWhere('bookmarked_at', from, to)
+    const tweetRange = buildDateRangeWhere('t.bookmarked_at', from, to)
 
     // ── Section 1: Overview ──────────────────────────────────────────
     const basicStats = db
@@ -31,9 +57,10 @@ export async function GET() {
            COUNT(DISTINCT author_handle) as totalAuthors,
            MIN(bookmarked_at) as oldestBookmark,
            MAX(bookmarked_at) as newestBookmark
-         FROM tweets`
+         FROM tweets
+         ${baseRange.whereClause}`
       )
-      .get() as {
+      .get(...baseRange.params) as {
       totalBookmarks: number
       totalAuthors: number
       oldestBookmark: string | null
@@ -69,18 +96,20 @@ export async function GET() {
       .prepare(
         `SELECT strftime('%w', bookmarked_at) as dow, COUNT(*) as cnt
          FROM tweets
+         ${baseRange.whereClause}
          GROUP BY dow
          ORDER BY cnt DESC
          LIMIT 1`
       )
-      .get() as { dow: string; cnt: number } | null
+      .get(...baseRange.params) as { dow: string; cnt: number } | null
 
     const daySpanRow = db
       .prepare(
         `SELECT julianday(MAX(bookmarked_at)) - julianday(MIN(bookmarked_at)) + 1 as daySpan
-         FROM tweets`
+         FROM tweets
+         ${baseRange.whereClause}`
       )
-      .get() as { daySpan: number | null }
+      .get(...baseRange.params) as { daySpan: number | null }
 
     const daySpan = Math.max(1, daySpanRow?.daySpan ?? 1)
     const avgBookmarksPerDay = Math.round((basicStats.totalBookmarks / daySpan) * 100) / 100
@@ -109,11 +138,12 @@ export async function GET() {
               GROUP BY category_id ORDER BY COUNT(*) DESC LIMIT 1
             )) as primaryTopic
          FROM tweets t
+         ${tweetRange.whereClause}
          GROUP BY t.author_handle
          ORDER BY count DESC
          LIMIT 15`
       )
-      .all() as TopAuthor[]
+      .all(...tweetRange.params) as TopAuthor[]
 
     // ── Section 3: Topic Distribution ────────────────────────────────
     const topicRows = db
@@ -121,10 +151,11 @@ export async function GET() {
         `SELECT sc.name, sc.emoji, COUNT(*) as count
          FROM tweets t
          JOIN semantic_categories sc ON t.category_id = sc.id
+         ${tweetRange.whereClause}
          GROUP BY sc.id
          ORDER BY count DESC`
       )
-      .all() as { name: string; emoji: string | null; count: number }[]
+      .all(...tweetRange.params) as { name: string; emoji: string | null; count: number }[]
 
     const totalWithTopic = topicRows.reduce((sum, r) => sum + r.count, 0)
     const topicDistribution: TopicDistribution[] = totalWithTopic > 0
@@ -140,9 +171,10 @@ export async function GET() {
     const rangeRow = db
       .prepare(
         `SELECT MIN(bookmarked_at) as earliest, MAX(bookmarked_at) as latest
-         FROM tweets`
+         FROM tweets
+         ${baseRange.whereClause}`
       )
-      .get() as { earliest: string | null; latest: string | null }
+      .get(...baseRange.params) as { earliest: string | null; latest: string | null }
 
     const earliest = rangeRow?.earliest ? new Date(rangeRow.earliest) : new Date()
     const latest = rangeRow?.latest ? new Date(rangeRow.latest) : new Date()
@@ -156,11 +188,11 @@ export async function GET() {
         `SELECT strftime('${timeFmt}', bookmarked_at) as period, sc.name as category, COUNT(*) as count
          FROM tweets t
          JOIN semantic_categories sc ON t.category_id = sc.id
-         WHERE bookmarked_at >= datetime('now', '-12 months')
+         ${tweetRange.whereClause}
          GROUP BY period, sc.id
          ORDER BY period ASC`
       )
-      .all() as { period: string; category: string; count: number }[]
+      .all(...tweetRange.params) as { period: string; category: string; count: number }[]
 
     const allCategories = new Set<string>()
     const evolutionMap = new Map<string, Array<{ name: string; count: number }>>()
@@ -204,24 +236,40 @@ export async function GET() {
                 sc.name as topic
          FROM tweets t
          LEFT JOIN semantic_categories sc ON t.category_id = sc.id
+         ${tweetRange.whereClause}
          ORDER BY t.bookmarked_at DESC
          LIMIT 500`
       )
-      .all() as EngagementPoint[]
+      .all(...tweetRange.params) as EngagementPoint[]
 
     // ── Section 6: Forgotten Bookmarks (30+ days, no folder, top 20) ─
+    const forgottenClauses = [
+      `t.bookmarked_at < datetime('now', '-30 days')`,
+      `t.id NOT IN (SELECT tweet_id FROM tweet_folders)`,
+    ]
+    const forgottenParams: string[] = []
+
+    if (from) {
+      forgottenClauses.push('t.bookmarked_at >= ?')
+      forgottenParams.push(from)
+    }
+
+    if (to) {
+      forgottenClauses.push('t.bookmarked_at <= ?')
+      forgottenParams.push(to)
+    }
+
     const forgottenBookmarks = db
       .prepare(
         `SELECT t.id, t.text, t.author_handle as authorHandle, t.created_at as createdAt,
                 t.bookmarked_at as bookmarkedAt, t.like_count as likeCount,
                 CAST(julianday('now') - julianday(t.bookmarked_at) AS INTEGER) as daysSinceBookmarked
          FROM tweets t
-         WHERE t.bookmarked_at < datetime('now', '-30 days')
-           AND t.id NOT IN (SELECT tweet_id FROM tweet_folders)
+         WHERE ${forgottenClauses.join(' AND ')}
          ORDER BY t.bookmarked_at ASC
          LIMIT 20`
       )
-      .all() as ForgottenBookmark[]
+      .all(...forgottenParams) as ForgottenBookmark[]
 
     return NextResponse.json({
       overview,

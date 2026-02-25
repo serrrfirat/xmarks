@@ -12,6 +12,8 @@ export interface BookmarkListProps {
   folderId?: number
   tagId?: number
   categoryId?: number
+  from?: string
+  to?: string
   folders?: Folder[]
   tags?: Tag[]
   onAddToFolder?: (tweetId: string, folderId: number) => void
@@ -24,6 +26,8 @@ export function BookmarkList({
   folderId,
   tagId,
   categoryId,
+  from,
+  to,
   folders,
   tags,
   onAddToFolder,
@@ -54,7 +58,9 @@ export function BookmarkList({
         } else {
           if (folderId !== undefined) url.searchParams.set('folderId', String(folderId))
           if (tagId !== undefined) url.searchParams.set('tagId', String(tagId))
-           if (categoryId !== undefined) url.searchParams.set('categoryId', String(categoryId))
+          if (categoryId !== undefined) url.searchParams.set('categoryId', String(categoryId))
+          if (from) url.searchParams.set('from', from)
+          if (to) url.searchParams.set('to', to)
         }
 
         const res = await fetch(url.toString())
@@ -70,7 +76,7 @@ export function BookmarkList({
         setError(err instanceof Error ? err.message : 'Failed to load bookmarks')
       }
     },
-    [query, folderId, tagId, categoryId],
+    [query, folderId, tagId, categoryId, from, to],
   )
 
   useEffect(() => {
@@ -171,10 +177,12 @@ function SkeletonCard() {
 }
 
 function SkeletonList() {
+  const skeletonKeys = ['one', 'two', 'three', 'four', 'five']
+
   return (
     <div className="flex flex-col gap-3">
-      {Array.from({ length: 5 }, (_, i) => (
-        <SkeletonCard key={i} />
+      {skeletonKeys.map((key) => (
+        <SkeletonCard key={key} />
       ))}
     </div>
   )

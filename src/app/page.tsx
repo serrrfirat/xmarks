@@ -7,6 +7,7 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
 import { BookmarkList } from '@/components/bookmark-list'
 import { AuthorSheet } from '@/components/author-sheet'
+import { TimeRangeFilter, getDateRange } from '@/components/time-range-filter'
 
 function HomeContent() {
   const searchParams = useSearchParams()
@@ -20,6 +21,8 @@ function HomeContent() {
 
   const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [timeRange, setTimeRange] = useState('all')
+  const { from, to } = getDateRange(timeRange)
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -31,10 +34,15 @@ function HomeContent() {
             <h1 className="mb-6 font-serif text-2xl font-light tracking-[-0.02em] text-[#E7E5E4]">
               All Bookmarks
             </h1>
+            <div className="mb-6">
+              <TimeRangeFilter value={timeRange} onChange={setTimeRange} />
+            </div>
             <BookmarkList
               folderId={folderId}
               tagId={tagId}
               categoryId={categoryId}
+              from={from}
+              to={to}
               onAuthorClick={(handle) => {
                 setSelectedAuthor(handle)
                 setSheetOpen(true)
